@@ -76,4 +76,27 @@ func main() {
 		fmt.Println("Error:", err)
 	}
 	fmt.Println("URL:", uploadUrl)
+
+	filepath := "/home/marcel/dev/scripts/go/backend/video.mp4"
+
+	fileSize, fileFormat, err := GetFileSize(filepath)
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		return
+	}
+
+	fmt.Printf("File size: %d bytes\n", fileSize)
+
+	response, err := UploadFile(
+		uploadUrl,
+		"bytes 0-9999999/50000123",
+		10000000,
+		fileFormat,
+		filepath)
+
+	if err != nil {
+		fmt.Println("Error:", err)
+	}
+
+	fmt.Println("Response:", response)
 }

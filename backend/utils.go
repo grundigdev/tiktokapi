@@ -7,7 +7,10 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
+	"strconv"
 	"strings"
+	"time"
 )
 
 // Response struct based on TikTok's OAuth response format
@@ -256,4 +259,148 @@ func CreateUploadURL(
 
 	return uploadResponse.Data.UploadURL, nil
 
+}
+
+func GetFileSize(filepath string) (int64, string, error) {
+	// Check if file exists and get file info
+	fileInfo, err := os.Stat(filepath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return 0, "", fmt.Errorf("file does not exist: %s", filepath)
+		}
+		return 0, "", fmt.Errorf("failed to access file %s: %w", filepath, err)
+	}
+
+	// Check if path is a directory
+	if fileInfo.IsDir() {
+		return 0, "", fmt.Errorf("path is a directory, not a file: %s", filepath)
+	}
+
+	// Detect file type
+	file, err := os.Open(filepath)
+	if err != nil {
+		return 0, "", fmt.Errorf("failed to open file: %w", err)
+	}
+	defer file.Close()
+
+	// Read first 512 bytes for type detection
+	buffer := make([]byte, 512)
+	n, err := file.Read(buffer)
+	if err != nil {
+		return 0, "", fmt.Errorf("failed to read file: %w", err)
+	}
+
+	// Detect content type
+	contentType := http.DetectContentType(buffer[:n])
+
+	// Validate against allowed video formats
+	allowedFormats := map[string]bool{
+		"video/mp4":       true,
+		"video/quicktime": true,
+		"video/webm":      true,
+	}
+
+	if !allowedFormats[contentType] {
+		return 0, "", fmt.Errorf("invalid file format: %s (expected video/mp4, video/quicktime, or video/webm)", contentType)
+	}
+
+	return fileInfo.Size(), contentType, nil
+}
+
+func UploadFile(
+	uploadUrl string,
+	contentRange string,
+	contentLength int,
+	contentType string,
+	filePath string,
+) (string, error) {
+	// Open the file
+	file, err := os.Open(filePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to open file: %w", err)
+	}
+	defer file.Close()
+
+	// Parse Content-Range to get the byte range to read
+	// Format: "bytes {FIRST_BYTE}-{LAST_BYTE}/{TOTAL_BYTE_LENGTH}"
+	var firstByte, lastByte, totalBytes int64
+	_, err = fmt.Sscanf(contentRange, "bytes %d-%d/%d", &firstByte, &lastByte, &totalBytes)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse content range: %w", err)
+	}
+
+	// Calculate the actual chunk size to read
+	chunkSize := lastByte - firstByte + 1
+
+	// Validate that contentLength matches the calculated chunk size
+	if int64(contentLength) != chunkSize {
+		return "", fmt.Errorf("contentLength (%d) does not match calculated chunk size (%d)", contentLength, chunkSize)
+	}
+
+	// Seek to the starting position
+	_, err = file.Seek(firstByte, 0)
+	if err != nil {
+		return "", fmt.Errorf("failed to seek file: %w", err)
+	}
+
+	// Read the chunk data
+	chunkData := make([]byte, chunkSize)
+	bytesRead, err := io.ReadFull(file, chunkData)
+	if err != nil && err != io.ErrUnexpectedEOF {
+		return "", fmt.Errorf("failed to read chunk: %w", err)
+	}
+
+	// Verify we read the expected amount
+	if int64(bytesRead) != chunkSize {
+		return "", fmt.Errorf("read %d bytes but expected %d", bytesRead, chunkSize)
+	}
+
+	// Create the HTTP request
+	req, err := http.NewRequest("PUT", uploadUrl, bytes.NewReader(chunkData))
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Set required headers
+	req.Header.Set("Content-Type", contentType)
+	req.Header.Set("Content-Length", strconv.Itoa(contentLength))
+	req.Header.Set("Content-Range", contentRange)
+
+	// Execute the request
+	client := &http.Client{
+		Timeout: 5 * time.Minute, // Adjust timeout as needed
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to execute request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Read response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	// Handle response based on status code
+	switch resp.StatusCode {
+	case http.StatusCreated: // 201 - All parts uploaded
+		return string(body), nil
+	case http.StatusPartialContent: // 206 - Chunk uploaded successfully, more to go
+		return string(body), nil
+	case http.StatusBadRequest: // 400
+		return "", fmt.Errorf("bad request (400): %s", string(body))
+	case http.StatusForbidden: // 403
+		return "", fmt.Errorf("upload URL expired (403): %s", string(body))
+	case http.StatusNotFound: // 404
+		return "", fmt.Errorf("upload task not found (404): %s", string(body))
+	case http.StatusRequestedRangeNotSatisfiable: // 416
+		return "", fmt.Errorf("content range mismatch (416): %s", string(body))
+	default:
+		if resp.StatusCode >= 500 {
+			// 5xx errors should be retried according to API docs
+			return "", fmt.Errorf("server error (%d), should retry: %s", resp.StatusCode, string(body))
+		}
+		return "", fmt.Errorf("unexpected status code (%d): %s", resp.StatusCode, string(body))
+	}
 }

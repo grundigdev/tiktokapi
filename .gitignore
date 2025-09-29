@@ -1,9 +1,6 @@
 # Ignore backup directory
 /backup
 
-# Environment files
-/api/.env
-
 # Go build artifacts
 *.exe
 *.exe~
