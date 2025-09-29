@@ -1,2 +1,21 @@
+# Ignore backup directory
 /backup
+
+# Environment files
 /backend/.env
+
+# Go build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Vendor directory (if using vendored dependencies)
+/vendor/
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
