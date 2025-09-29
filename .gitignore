@@ -2,7 +2,7 @@
 /backup
 
 # Environment files
-/backend/.env
+/api/.env
 
 # Go build artifacts
 *.exe
