@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	"fmt"
-
 	"github.com/grundigdev/club/requests"
 	"github.com/grundigdev/club/services"
 	"github.com/grundigdev/club/shared"
@@ -23,7 +21,7 @@ func (h *Handler) CreateToken(c echo.Context) error {
 	if validationErrors != nil {
 		return shared.SendFailedValidationResponse(c, validationErrors)
 	}
-	fmt.Println(payload)
+
 	tokenService := services.NewTokenService(h.DB)
 
 	token, err := tokenService.CreateToken(payload)
@@ -35,11 +33,31 @@ func (h *Handler) CreateToken(c echo.Context) error {
 
 }
 
-func (h *Handler) GetLastToken(c echo.Context) error {
+func (h *Handler) CheckToken(c echo.Context) error {
+	payload := new(requests.CheckTokenRequest)
+
+	err := h.BindBodyRequest(c, payload)
+	if err != nil {
+		c.Logger().Error(err)
+		return shared.SendBadRequestResponse(c, err.Error())
+	}
+
+	validationErrors := h.ValidateBodyRequest(c, *payload)
+
+	if validationErrors != nil {
+		return shared.SendFailedValidationResponse(c, validationErrors)
+	}
+
 	tokenService := services.NewTokenService(h.DB)
-	lastToken, err := tokenService.GetLastToken()
+	token, isValid, err := tokenService.GetToken(payload.AccessToken)
 	if err != nil {
 		return shared.SendInternalServerErrorResponse(c, err.Error())
 	}
-	return shared.SendSuccessResponse(c, "Last Token successfully fetched", lastToken)
+
+	responseData := map[string]interface{}{
+		"token":   token,
+		"isValid": isValid,
+	}
+
+	return shared.SendSuccessResponse(c, "Token successfully fetched", responseData)
 }

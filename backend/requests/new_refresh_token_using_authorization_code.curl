@@ -1,0 +1,8 @@
+curl --location --request POST 'https://open.tiktokapis.com/v2/oauth/token/' \
+--header 'Content-Type: application/x-www-form-urlencoded' \
+--header 'Cache-Control: no-cache' \
+--data-urlencode 'client_key=sbawwttwjocxh640nv' \
+--data-urlencode 'client_secret=xTzcl06NLOiEmSyGBSr5TlDAQCVUsx4a' \
+--data-urlencode 'code=_afF19iCTbhfQ9IqJtnxnjcaTZYd12jC_-layMCiC0Vv9rTE-HY854c8V2CxMAGcdMtAoEEVB81NltCx4FnqtosIHufF6NJzEMhBqD3eM1V9KyezEuOnKg9ZVWfqGXUiNo7HQZ1J1LghEdOOu_m3npBdrR3Fv7XzsWvcx78RqIlkl_nvf7AsTvcSkeMf7_OIfUNLP0AZ1dnMlPlUZgG6GA*0!4699.e1' \
+--data-urlencode 'grant_type=authorization_code' \
+--data-urlencode 'redirect_uri=https://tiktok.grundigdev.de/callback'

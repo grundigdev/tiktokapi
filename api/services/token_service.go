@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"time"
 
 	"github.com/grundigdev/club/models"
 	"github.com/grundigdev/club/requests"
@@ -29,18 +30,23 @@ func (c TokenService) CreateToken(data *requests.CreateTokenRequest) (*models.To
 	return tokenCreated, nil
 }
 
-func (c TokenService) GetLastToken() (*models.TokenModel, error) {
+func (c TokenService) GetToken(accessToken string) (*models.TokenModel, bool, error) {
 	var token models.TokenModel
 
-	// Order by created_at descending and get the first record
-	result := c.DB.Order("created_at DESC").First(&token)
+	// Filter by access token, order by created_at descending and get the first record
+	result := c.DB.Where("access_token = ?", accessToken).First(&token)
 
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return nil, errors.New("token not found")
+			return nil, false, errors.New("token not found")
 		}
-		return nil, result.Error
+		return nil, false, result.Error
 	}
 
-	return &token, nil
+	// Check if token has expired
+	if token.ExpiresAt.Before(time.Now()) {
+		return nil, false, errors.New("token has expired")
+	}
+
+	return &token, true, nil
 }

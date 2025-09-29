@@ -12,7 +12,7 @@ func (app *Application) routes(handler handlers.Handler) {
 	absenceRoutes := apiGroup.Group("/token")
 	{
 		absenceRoutes.POST("/create", handler.CreateToken)
-		absenceRoutes.GET("/get", handler.GetLastToken)
+		absenceRoutes.POST("/get", handler.CheckToken)
 	}
 
 }
