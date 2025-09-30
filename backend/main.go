@@ -17,16 +17,14 @@ type TokenRequest struct {
 func main() {
 	originalRefreshToken := "rft.7yekSfYUqyhHt7f6Inz3wkJ9ErZZ0lZkbuFrejf5n0KuKYXZcL13x3GqTuZV!4736.e1"
 
-	// Renew access token and get expiry in seconds
-	accessToken, expiresIn, err := RenewAccessToken(originalRefreshToken)
+	// Load German timezone (Europe/Berlin)
+	loc, err := time.LoadLocation("Europe/Berlin")
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println("New Access Token:", accessToken)
-
-	// Load German timezone (Europe/Berlin)
-	loc, err := time.LoadLocation("Europe/Berlin")
+	// Renew access token and get expiry in seconds
+	accessToken, expiresIn, err := RenewAccessToken(originalRefreshToken)
 	if err != nil {
 		panic(err)
 	}
@@ -47,7 +45,7 @@ func main() {
 		panic(err)
 	}
 
-	// Send POST request to your API
+	// Send POST request to API
 	resp, err := http.Post(
 		"http://127.0.0.1:8080/api/token/create",
 		"application/json",
@@ -62,11 +60,12 @@ func main() {
 
 	// Create Upload URL for File
 
-	filepath := "/home/marcel/dev/scripts/go/backend/video.mp4"
+	filePath := "/home/marcel/dev/scripts/go/backend/video2.mp4"
+	contentType := "video/mp4"
 	uploadUrl, err := CreateUploadURL(
 		"Test",
 		"SELF_ONLY",
-		filepath,
+		filePath,
 		1000,
 		accessToken,
 		originalRefreshToken,
@@ -76,26 +75,15 @@ func main() {
 	}
 	fmt.Println("URL:", uploadUrl)
 
-	fileSize, _, err := GetFileSize(filepath)
+	fileSize, _, err := GetFileSize(filePath)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		return
 	}
 
-	fmt.Printf("File size: %d bytes\n", fileSize)
+	err = UploadFileComplete(uploadUrl, filePath, fileSize, contentType)
+	if err != nil {
+		fmt.Errorf("failed to upload file: %w", err)
+	}
 
-	/*
-		response, err := UploadFile(
-			uploadUrl,
-			"bytes 0-9999999/50000123",
-			10000000,
-			fileFormat,
-			filepath)
-
-		if err != nil {
-			fmt.Println("Error:", err)
-		}
-
-		fmt.Println("Response:", response)
-	*/
 }

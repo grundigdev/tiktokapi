@@ -318,10 +318,325 @@ func CreateUploadURL(
 		fmt.Println("Video publish init request successful")
 
 		return uploadResponse.Data.UploadURL, nil
+	} else {
+		// Calculate chunk size and count for multi-chunk upload
+		// Chunk size must be between 5 MB and 64 MB
+		// const minChunkSize = 5000000  // 5 MB
+		const maxChunkSize = 64000000 // 64 MB
+
+		/*
+			chunkSize := maxChunkSize // Use maximum chunk size for efficiency
+
+
+			// If there's a remainder, we need one more chunk
+			if fileSize%int64(chunkSize) > 0 {
+				totalChunkCount++
+			}
+
+			// Ensure we don't exceed 1000 chunks
+			if totalChunkCount > 1000 {
+				// Recalculate chunk size to fit within 1000 chunks
+				chunkSize = int(fileSize / 1000)
+				// Round up to ensure we don't exceed 1000 chunks
+				if fileSize%1000 > 0 {
+					chunkSize++
+				}
+				totalChunkCount = 1000
+			}
+		*/
+
+		chunkSize := 10000000
+		totalChunkCount := int(fileSize / int64(chunkSize))
+
+		body := CreateUploadURLRequestBody{
+			PostInfo: CreateUploadURLPostInfo{
+				Title:                 title,
+				PrivacyLevel:          privacyLevel,
+				DisableDuet:           true,
+				DisableComment:        true,
+				DisableStitch:         true,
+				VideoCoverTimestampMS: videoCoverTimestampMS,
+			},
+			SourceInfo: CreateUploadURLSourceInfo{
+				Source:          "FILE_UPLOAD",
+				VideoSize:       fileSize,
+				ChunkSize:       10000000,
+				TotalChunkCount: totalChunkCount,
+			},
+		}
+
+		jsonData, err := json.Marshal(body)
+		if err != nil {
+			return "", fmt.Errorf("failed to marshal request body: %v", err)
+		}
+
+		req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+		if err != nil {
+			return "", fmt.Errorf("failed to create request: %v", err)
+		}
+
+		req.Header.Set("Authorization", "Bearer "+accessToken)
+		req.Header.Set("Content-Type", "application/json; charset=UTF-8")
+
+		client := &http.Client{}
+		resp, err := client.Do(req)
+		if err != nil {
+			return "", fmt.Errorf("request failed: %v", err)
+		}
+		defer resp.Body.Close()
+
+		// Response Body lesen
+		bodyBytes, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return "", fmt.Errorf("failed to read response body: %v", err)
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			return "", fmt.Errorf("received non-OK response: %s, body: %s", resp.Status, string(bodyBytes))
+		}
+
+		// Parse JSON Response
+		var uploadResponse CreateUploadURLResponse
+		if err := json.Unmarshal(bodyBytes, &uploadResponse); err != nil {
+			return "", fmt.Errorf("failed to parse response: %v", err)
+		}
+
+		// Check if error occurred
+		if uploadResponse.Error.Code != "ok" {
+			return "", fmt.Errorf("API error: %s - %s", uploadResponse.Error.Code, uploadResponse.Error.Message)
+		}
+
+		fmt.Println("Video publish init request successful (chunked upload)")
+
+		return uploadResponse.Data.UploadURL, nil
 	}
-	return "", fmt.Errorf("Error")
 }
 
+// UploadFileComplete handles both single and multi-chunk uploads
+func UploadFileComplete(
+	uploadUrl string,
+	filePath string,
+	fileSize int64,
+	contentType string,
+) error {
+	const minChunkSize = 5000000  // 5 MB
+	const maxChunkSize = 64000000 // 64 MB
+
+	// Determine if single or multi-chunk upload
+	if fileSize < minChunkSize {
+		return uploadSingleChunk(uploadUrl, filePath, fileSize, contentType)
+	} else {
+		return uploadMultiChunk(uploadUrl, filePath, fileSize, contentType, maxChunkSize)
+	}
+}
+
+// uploadSingleChunk handles files < 5 MB
+func uploadSingleChunk(uploadUrl string, filePath string, fileSize int64, contentType string) error {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to open file: %w", err)
+	}
+	defer file.Close()
+
+	// Read entire file
+	fileData, err := io.ReadAll(file)
+	if err != nil {
+		return fmt.Errorf("failed to read file: %w", err)
+	}
+
+	// Create HTTP request
+	req, err := http.NewRequest("PUT", uploadUrl, bytes.NewReader(fileData))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Set headers for single chunk upload
+	req.Header.Set("Content-Type", contentType)
+	req.Header.Set("Content-Length", strconv.FormatInt(fileSize, 10))
+	req.Header.Set("Content-Range", fmt.Sprintf("bytes 0-%d/%d", fileSize-1, fileSize))
+
+	// Execute request
+	client := &http.Client{
+		Timeout: 5 * time.Minute,
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to execute request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	// Single chunk should return 201
+	if resp.StatusCode != http.StatusCreated {
+		return fmt.Errorf("upload failed with status %d: %s", resp.StatusCode, string(body))
+	}
+
+	fmt.Println("Single chunk upload successful")
+	return nil
+}
+
+// uploadMultiChunk handles files >= 5 MB
+func uploadMultiChunk(uploadUrl string, filePath string, fileSize int64, contentType string, chunkSize int) error {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to open file: %w", err)
+	}
+	defer file.Close()
+
+	// Calculate number of chunks
+	/*totalChunks := int(fileSize / int64(chunkSize))
+	if fileSize%int64(chunkSize) > 0 {
+		totalChunks++
+	}*/
+
+	chunkSize2 := 10000000
+	totalChunks := int(fileSize / int64(chunkSize2))
+
+	fmt.Printf("Starting multi-chunk upload: %d chunks\n", totalChunks)
+
+	// Upload each chunk sequentially
+	for chunkIndex := 0; chunkIndex < totalChunks; chunkIndex++ {
+		firstByte := int64(chunkIndex) * int64(chunkSize2)
+		lastByte := firstByte + int64(chunkSize2) - 1
+
+		// Last chunk: adjust to file size and can exceed chunkSize
+		if chunkIndex == totalChunks-1 {
+			lastByte = fileSize - 1
+		}
+
+		currentChunkSize := lastByte - firstByte + 1
+
+		// Upload this chunk
+		err := uploadChunk(uploadUrl, file, firstByte, lastByte, fileSize, currentChunkSize, contentType, chunkIndex+1, totalChunks)
+		if err != nil {
+			return fmt.Errorf("failed to upload chunk %d/%d: %w", chunkIndex+1, totalChunks, err)
+		}
+
+		fmt.Printf("Uploaded chunk %d/%d\n", chunkIndex+1, totalChunks)
+	}
+
+	fmt.Println("Multi-chunk upload completed successfully")
+	return nil
+}
+
+// uploadChunk uploads a single chunk
+func uploadChunk(
+	uploadUrl string,
+	file *os.File,
+	firstByte int64,
+	lastByte int64,
+	totalBytes int64,
+	chunkSize int64,
+	contentType string,
+	chunkNum int,
+	totalChunks int,
+) error {
+	// Seek to starting position
+	_, err := file.Seek(firstByte, 0)
+	if err != nil {
+		return fmt.Errorf("failed to seek file: %w", err)
+	}
+
+	// Read chunk data
+	chunkData := make([]byte, chunkSize)
+	bytesRead, err := io.ReadFull(file, chunkData)
+	if err != nil && err != io.ErrUnexpectedEOF {
+		return fmt.Errorf("failed to read chunk: %w", err)
+	}
+
+	// Verify we read the expected amount
+	if int64(bytesRead) != chunkSize {
+		return fmt.Errorf("read %d bytes but expected %d", bytesRead, chunkSize)
+	}
+
+	// Create HTTP request
+	req, err := http.NewRequest("PUT", uploadUrl, bytes.NewReader(chunkData))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Set headers
+	contentRange := fmt.Sprintf("bytes %d-%d/%d", firstByte, lastByte, totalBytes)
+	req.Header.Set("Content-Type", contentType)
+	req.Header.Set("Content-Length", strconv.FormatInt(chunkSize, 10))
+	req.Header.Set("Content-Range", contentRange)
+
+	// Execute request with retry logic for 5xx errors
+	maxRetries := 3
+	var resp *http.Response
+
+	client := &http.Client{
+		Timeout: 5 * time.Minute,
+	}
+
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		if attempt > 0 {
+			waitTime := time.Duration(attempt) * 2 * time.Second
+			fmt.Printf("Retrying chunk %d/%d after %v (attempt %d/%d)\n",
+				chunkNum, totalChunks, waitTime, attempt+1, maxRetries)
+			time.Sleep(waitTime)
+		}
+
+		resp, err = client.Do(req)
+		if err != nil {
+			if attempt == maxRetries-1 {
+				return fmt.Errorf("failed to execute request after %d attempts: %w", maxRetries, err)
+			}
+			continue
+		}
+
+		// If we get a 5xx error, retry
+		if resp.StatusCode >= 500 {
+			body, _ := io.ReadAll(resp.Body)
+			resp.Body.Close()
+			if attempt == maxRetries-1 {
+				return fmt.Errorf("server error (%d) after %d attempts: %s", resp.StatusCode, maxRetries, string(body))
+			}
+			continue
+		}
+
+		// Success or non-retryable error, break out of retry loop
+		break
+	}
+
+	defer resp.Body.Close()
+
+	// Read response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	// Handle response based on status code
+	switch resp.StatusCode {
+	case http.StatusCreated: // 201 - Final chunk uploaded
+		if chunkNum != totalChunks {
+			return fmt.Errorf("received 201 status but not on final chunk (chunk %d/%d)", chunkNum, totalChunks)
+		}
+		return nil
+	case http.StatusPartialContent: // 206 - Chunk uploaded successfully, more to go
+		if chunkNum == totalChunks {
+			return fmt.Errorf("received 206 status on final chunk (chunk %d/%d)", chunkNum, totalChunks)
+		}
+		return nil
+	case http.StatusBadRequest: // 400
+		return fmt.Errorf("bad request (400): %s", string(body))
+	case http.StatusForbidden: // 403
+		return fmt.Errorf("upload URL expired (403): %s", string(body))
+	case http.StatusNotFound: // 404
+		return fmt.Errorf("upload task not found (404): %s", string(body))
+	case http.StatusRequestedRangeNotSatisfiable: // 416
+		return fmt.Errorf("content range mismatch (416): %s", string(body))
+	default:
+		return fmt.Errorf("unexpected status code (%d): %s", resp.StatusCode, string(body))
+	}
+}
+
+/*
 func UploadFile(
 	uploadUrl string,
 	contentRange string,
@@ -419,3 +734,5 @@ func UploadFile(
 		return "", fmt.Errorf("unexpected status code (%d): %s", resp.StatusCode, string(body))
 	}
 }
+
+*/
