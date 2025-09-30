@@ -62,13 +62,12 @@ func main() {
 
 	// Create Upload URL for File
 
+	filepath := "/home/marcel/dev/scripts/go/backend/video.mp4"
 	uploadUrl, err := CreateUploadURL(
 		"Test",
 		"SELF_ONLY",
+		filepath,
 		1000,
-		1803949,
-		1803949,
-		1,
 		accessToken,
 		originalRefreshToken,
 	)
@@ -77,9 +76,7 @@ func main() {
 	}
 	fmt.Println("URL:", uploadUrl)
 
-	filepath := "/home/marcel/dev/scripts/go/backend/video.mp4"
-
-	fileSize, fileFormat, err := GetFileSize(filepath)
+	fileSize, _, err := GetFileSize(filepath)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		return
@@ -87,16 +84,18 @@ func main() {
 
 	fmt.Printf("File size: %d bytes\n", fileSize)
 
-	response, err := UploadFile(
-		uploadUrl,
-		"bytes 0-9999999/50000123",
-		10000000,
-		fileFormat,
-		filepath)
+	/*
+		response, err := UploadFile(
+			uploadUrl,
+			"bytes 0-9999999/50000123",
+			10000000,
+			fileFormat,
+			filepath)
 
-	if err != nil {
-		fmt.Println("Error:", err)
-	}
+		if err != nil {
+			fmt.Println("Error:", err)
+		}
 
-	fmt.Println("Response:", response)
+		fmt.Println("Response:", response)
+	*/
 }

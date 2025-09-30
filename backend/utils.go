@@ -130,136 +130,7 @@ func CheckAccessToken(accessToken string) (bool, error) {
 	return true, nil
 }
 
-// CREATE UPLOAD URL
-
-type CreateUploadURLPostInfo struct {
-	Title                 string `json:"title"`
-	PrivacyLevel          string `json:"privacy_level"`
-	DisableDuet           bool   `json:"disable_duet"`
-	DisableComment        bool   `json:"disable_comment"`
-	DisableStitch         bool   `json:"disable_stitch"`
-	VideoCoverTimestampMS int    `json:"video_cover_timestamp_ms"`
-}
-
-type CreateUploadURLSourceInfo struct {
-	Source          string `json:"source"`
-	VideoSize       int    `json:"video_size"`
-	ChunkSize       int    `json:"chunk_size"`
-	TotalChunkCount int    `json:"total_chunk_count"`
-}
-
-type CreateUploadURLRequestBody struct {
-	PostInfo   CreateUploadURLPostInfo   `json:"post_info"`
-	SourceInfo CreateUploadURLSourceInfo `json:"source_info"`
-}
-
-type CreateUploadURLResponse struct {
-	Data struct {
-		PublishID string `json:"publish_id"`
-		UploadURL string `json:"upload_url"`
-	} `json:"data"`
-	Error struct {
-		Code    string `json:"code"`
-		Message string `json:"message"`
-		LogID   string `json:"log_id"`
-	} `json:"error"`
-}
-
-func CreateUploadURL(
-	title string,
-	privacyLevel string,
-	videoCoverTimestampMS int,
-	videoSize int,
-	chunkSize int,
-	totalChunkCount int,
-	accessToken string,
-	refreshToken string,
-) (string, error) {
-
-	// Check if access token is valid
-	isValid, err := CheckAccessToken(accessToken)
-	if err != nil {
-		return "", fmt.Errorf("failed to check access token: %v", err)
-	}
-
-	// Renew token if invalid
-	if !isValid {
-		newAccessToken, _, err := RenewAccessToken(refreshToken)
-		if err != nil {
-			return "", fmt.Errorf("failed to renew access token: %v", err)
-		}
-		accessToken = newAccessToken
-	}
-
-	url := "https://open.tiktokapis.com/v2/post/publish/video/init/"
-
-	body := CreateUploadURLRequestBody{
-		PostInfo: CreateUploadURLPostInfo{
-			Title:                 title,
-			PrivacyLevel:          privacyLevel,
-			DisableDuet:           true,
-			DisableComment:        true,
-			DisableStitch:         true,
-			VideoCoverTimestampMS: videoCoverTimestampMS,
-		},
-		SourceInfo: CreateUploadURLSourceInfo{
-			Source:          "FILE_UPLOAD",
-			VideoSize:       videoSize,
-			ChunkSize:       chunkSize,
-			TotalChunkCount: totalChunkCount,
-		},
-	}
-
-	jsonData, err := json.Marshal(body)
-	if err != nil {
-		return "", fmt.Errorf("failed to marshal request body: %v", err)
-	}
-
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
-	if err != nil {
-		return "", fmt.Errorf("failed to create request: %v", err)
-	}
-
-	req.Header.Set("Authorization", "Bearer "+accessToken)
-	req.Header.Set("Content-Type", "application/json; charset=UTF-8")
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("request failed: %v", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("received non-OK response: %s", resp.Status)
-	}
-
-	// Response Body lesen
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("failed to read response body: %v", err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("received non-OK response: %s, body: %s", resp.Status, string(bodyBytes))
-	}
-
-	// Parse JSON Response
-	var uploadResponse CreateUploadURLResponse
-	if err := json.Unmarshal(bodyBytes, &uploadResponse); err != nil {
-		return "", fmt.Errorf("failed to parse response: %v", err)
-	}
-
-	// Check if error occurred
-	if uploadResponse.Error.Code != "ok" {
-		return "", fmt.Errorf("API error: %s - %s", uploadResponse.Error.Code, uploadResponse.Error.Message)
-	}
-
-	fmt.Println("Video publish init request successful")
-
-	return uploadResponse.Data.UploadURL, nil
-
-}
+// GET FILE SIZE
 
 func GetFileSize(filepath string) (int64, string, error) {
 	// Check if file exists and get file info
@@ -305,6 +176,150 @@ func GetFileSize(filepath string) (int64, string, error) {
 	}
 
 	return fileInfo.Size(), contentType, nil
+}
+
+// CREATE UPLOAD URL
+
+type CreateUploadURLPostInfo struct {
+	Title                 string `json:"title"`
+	PrivacyLevel          string `json:"privacy_level"`
+	DisableDuet           bool   `json:"disable_duet"`
+	DisableComment        bool   `json:"disable_comment"`
+	DisableStitch         bool   `json:"disable_stitch"`
+	VideoCoverTimestampMS int    `json:"video_cover_timestamp_ms"`
+}
+
+type CreateUploadURLSourceInfo struct {
+	Source          string `json:"source"`
+	VideoSize       int64  `json:"video_size"`
+	ChunkSize       int64  `json:"chunk_size"`
+	TotalChunkCount int    `json:"total_chunk_count"`
+}
+
+type CreateUploadURLRequestBody struct {
+	PostInfo   CreateUploadURLPostInfo   `json:"post_info"`
+	SourceInfo CreateUploadURLSourceInfo `json:"source_info"`
+}
+
+type CreateUploadURLResponse struct {
+	Data struct {
+		PublishID string `json:"publish_id"`
+		UploadURL string `json:"upload_url"`
+	} `json:"data"`
+	Error struct {
+		Code    string `json:"code"`
+		Message string `json:"message"`
+		LogID   string `json:"log_id"`
+	} `json:"error"`
+}
+
+func CreateUploadURL(
+	title string,
+	privacyLevel string,
+	filePath string,
+	videoCoverTimestampMS int,
+	accessToken string,
+	refreshToken string,
+) (string, error) {
+
+	var singleUpload bool
+	fileSize, _, err := GetFileSize(filePath)
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		return "", fmt.Errorf("failed to get file size: %v", err)
+	}
+
+	if fileSize > 5000000 {
+		singleUpload = false
+	} else {
+		singleUpload = true
+	}
+
+	// Check if access token is valid
+	isValid, err := CheckAccessToken(accessToken)
+	if err != nil {
+		return "", fmt.Errorf("failed to check access token: %v", err)
+	}
+
+	// Renew token if invalid
+	if !isValid {
+		newAccessToken, _, err := RenewAccessToken(refreshToken)
+		if err != nil {
+			return "", fmt.Errorf("failed to renew access token: %v", err)
+		}
+		accessToken = newAccessToken
+	}
+
+	url := "https://open.tiktokapis.com/v2/post/publish/video/init/"
+
+	if singleUpload {
+		body := CreateUploadURLRequestBody{
+			PostInfo: CreateUploadURLPostInfo{
+				Title:                 title,
+				PrivacyLevel:          privacyLevel,
+				DisableDuet:           true,
+				DisableComment:        true,
+				DisableStitch:         true,
+				VideoCoverTimestampMS: videoCoverTimestampMS,
+			},
+			SourceInfo: CreateUploadURLSourceInfo{
+				Source:          "FILE_UPLOAD",
+				VideoSize:       fileSize,
+				ChunkSize:       fileSize,
+				TotalChunkCount: 1,
+			},
+		}
+
+		jsonData, err := json.Marshal(body)
+		if err != nil {
+			return "", fmt.Errorf("failed to marshal request body: %v", err)
+		}
+
+		req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+		if err != nil {
+			return "", fmt.Errorf("failed to create request: %v", err)
+		}
+
+		req.Header.Set("Authorization", "Bearer "+accessToken)
+		req.Header.Set("Content-Type", "application/json; charset=UTF-8")
+
+		client := &http.Client{}
+		resp, err := client.Do(req)
+		if err != nil {
+			return "", fmt.Errorf("request failed: %v", err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			return "", fmt.Errorf("received non-OK response: %s", resp.Status)
+		}
+
+		// Response Body lesen
+		bodyBytes, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return "", fmt.Errorf("failed to read response body: %v", err)
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			return "", fmt.Errorf("received non-OK response: %s, body: %s", resp.Status, string(bodyBytes))
+		}
+
+		// Parse JSON Response
+		var uploadResponse CreateUploadURLResponse
+		if err := json.Unmarshal(bodyBytes, &uploadResponse); err != nil {
+			return "", fmt.Errorf("failed to parse response: %v", err)
+		}
+
+		// Check if error occurred
+		if uploadResponse.Error.Code != "ok" {
+			return "", fmt.Errorf("API error: %s - %s", uploadResponse.Error.Code, uploadResponse.Error.Message)
+		}
+
+		fmt.Println("Video publish init request successful")
+
+		return uploadResponse.Data.UploadURL, nil
+	}
+	return "", fmt.Errorf("Error")
 }
 
 func UploadFile(
