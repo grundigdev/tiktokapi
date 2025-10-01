@@ -9,7 +9,7 @@
 *.dylib
 *.test
 *.out
-
+*.mp4
 # Vendor directory (if using vendored dependencies)
 /vendor/
 

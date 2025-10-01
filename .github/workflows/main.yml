@@ -1,0 +1,17 @@
+name: Simple Test
+
+on: [push]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Print Hello
+      run: echo "Hello, GitHub Actions!"
+    
+    - name: Print Date
+      run: date
+    
+    - name: Test Passed
+      run: echo "✅ All tests passed!"

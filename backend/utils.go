@@ -319,10 +319,6 @@ func CreateUploadURL(
 
 		return uploadResponse.Data.UploadURL, nil
 	} else {
-		// Calculate chunk size and count for multi-chunk upload
-		// Chunk size must be between 5 MB and 64 MB
-		// const minChunkSize = 5000000  // 5 MB
-		const maxChunkSize = 64000000 // 64 MB
 
 		/*
 			chunkSize := maxChunkSize // Use maximum chunk size for efficiency
