@@ -8,7 +8,7 @@ jobs:
     
     steps:
     - name: Print Hello
-      run: echo "Hello, GitHub Actions!"
+      run: echo "Hello, GitHub TEST!"
     
     - name: Print Date
       run: date
