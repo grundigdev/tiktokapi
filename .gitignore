@@ -16,3 +16,6 @@
 # OS/editor noise
 .DS_Store
 Thumbs.db
+
+# Exclude until Dockerize
+.github/workflows
