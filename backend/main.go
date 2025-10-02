@@ -28,7 +28,7 @@ func main() {
 			return
 		} */
 
-	filePath := "/home/marcel/dev/scripts/go/backend/video2.mp4"
+	filePath := "/home/marcel/dev/scripts/go/backend/video.mp4"
 
 	originalRefreshToken := "rft.7yekSfYUqyhHt7f6Inz3wkJ9ErZZ0lZkbuFrejf5n0KuKYXZcL13x3GqTuZV!4736.e1"
 
@@ -75,7 +75,7 @@ func main() {
 
 	// Create Upload URL for File
 
-	contentType := "video/mp4"
+	contentType := "video/mp2"
 	uploadUrl, err := CreateUploadURL(
 		"Test",
 		"SELF_ONLY",

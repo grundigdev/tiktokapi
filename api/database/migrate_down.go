@@ -30,11 +30,5 @@ func main() {
 		}
 	}
 
-	// Drop the custom enum type 'trade_status'
-	err = db.Exec(`DROP TYPE IF EXISTS trade_status;`).Error
-	if err != nil {
-		panic(err)
-	}
-
-	log.Println("ALL TABLES AND ENUM TYPES DROPPED SUCCESSFULLY")
+	log.Println("ALL TABLES HAS BEEN DROPPED SUCCESSFULLY")
 }

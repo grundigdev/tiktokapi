@@ -19,3 +19,4 @@ Thumbs.db
 
 # Exclude until Dockerize
 .github/workflows
+./deploy.txt

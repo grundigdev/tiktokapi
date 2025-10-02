@@ -44,9 +44,8 @@ func main() {
 		handler: h,
 	}
 	e.Use(middleware.Logger())
-	//e.Use(middlewares.CustomMiddleware)
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins:     []string{"http://127.0.0.1:5174", "http://localhost:5174", "http://127.0.0.1:5173", "http://localhost:5173", "http://192.168.2.106:5173", "https://tiktok.grundigdev.de", "https://tiktok.grundigdev.de:443"},
+		AllowOrigins:     []string{"127.0.0.1"},
 		AllowMethods:     []string{echo.GET, echo.POST, echo.PUT, echo.DELETE},
 		AllowHeaders:     []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
 		AllowCredentials: true, // If you're dealing with cookies
@@ -56,6 +55,4 @@ func main() {
 	port := os.Getenv("API_PORT")
 	appAddress := fmt.Sprintf("localhost:%s", port)
 	e.Logger.Fatal(e.Start(appAddress))
-
-	//e.Logger.Fatal(e.Start("192.168.2.106:8000"))
 }

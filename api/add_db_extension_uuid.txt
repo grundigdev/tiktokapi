@@ -1,3 +1,0 @@
-docker exec -it ID /bin/bash
-psql -d dienstplan -U marcel_admin
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";

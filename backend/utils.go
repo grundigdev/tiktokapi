@@ -213,6 +213,14 @@ type CreateUploadURLResponse struct {
 	} `json:"error"`
 }
 
+type UploadRequest struct {
+	Title          string `json:"title"`
+	PrivacyLevel   string `json:"privacy_level"`
+	FilePath       string `json:"file_path"`
+	FileSize       int64  `json:"file_size"`
+	CoverTimestamp int    `json:"cover_timestamp"`
+}
+
 func CreateUploadURL(
 	title string,
 	privacyLevel string,
@@ -317,6 +325,21 @@ func CreateUploadURL(
 
 		fmt.Println("Video publish init request successful")
 
+		payload := UploadRequest{
+			Title:          title,
+			PrivacyLevel:   privacyLevel,
+			FilePath:       filePath,
+			FileSize:       fileSize,
+			CoverTimestamp: videoCoverTimestampMS,
+		}
+
+		err = SentUpload(payload)
+
+		if err != nil {
+			fmt.Printf("Error: %v\n", err)
+			return "", fmt.Errorf("failed to get file size: %v", err)
+		}
+
 		return uploadResponse.Data.UploadURL, nil
 	} else {
 
@@ -403,6 +426,21 @@ func CreateUploadURL(
 		}
 
 		fmt.Println("Video publish init request successful (chunked upload)")
+
+		payload := UploadRequest{
+			Title:          title,
+			PrivacyLevel:   privacyLevel,
+			FilePath:       filePath,
+			FileSize:       fileSize,
+			CoverTimestamp: videoCoverTimestampMS,
+		}
+
+		err = SentUpload(payload)
+
+		if err != nil {
+			fmt.Printf("Error: %v\n", err)
+			return "", fmt.Errorf("failed to get file size: %v", err)
+		}
 
 		return uploadResponse.Data.UploadURL, nil
 	}

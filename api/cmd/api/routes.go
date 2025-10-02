@@ -5,14 +5,20 @@ import (
 )
 
 func (app *Application) routes(handler handlers.Handler) {
-	app.server.GET("/", handler.HealthCheck)
+	app.server.GET("/health", handler.HealthCheck)
 
 	apiGroup := app.server.Group("/api")
 
-	absenceRoutes := apiGroup.Group("/token")
+	tokenRoutes := apiGroup.Group("/token")
 	{
-		absenceRoutes.POST("/create", handler.CreateToken)
-		absenceRoutes.POST("/get", handler.CheckToken)
+		tokenRoutes.POST("/create", handler.CreateToken)
+		tokenRoutes.POST("/get", handler.CheckToken)
+	}
+
+	uploadRoutes := apiGroup.Group("/upload")
+	{
+		uploadRoutes.POST("/create", handler.CreateUpload)
+		uploadRoutes.POST("/get/all", handler.GetUploads)
 	}
 
 }

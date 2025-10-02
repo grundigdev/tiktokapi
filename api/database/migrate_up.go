@@ -13,15 +13,14 @@ func main() {
 		panic(err)
 	}
 
-	// Check if enum type 'trade_status' exists, if not, create it
-
+	// Support for UUID
 	err = db.Exec(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`).Error
 	if err != nil {
 		panic(err)
 	}
 
-	// AutoMigrate for the other tables
-	err = db.AutoMigrate(&models.TokenModel{})
+	// AutoMigrate
+	err = db.AutoMigrate(&models.TokenModel{}, &models.UploadModel{})
 	if err != nil {
 		panic(err)
 	}
