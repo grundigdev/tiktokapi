@@ -18,6 +18,13 @@ WORKDIR /app/
 # Binary vom builder stage kopieren
 COPY --from=builder /app/backend .
 
+RUN mkdir -p /app/videos/pending \
+             /app/videos/uploading \
+             /app/videos/uploaded \
+             /app/videos/failed
+
+RUN chmod -R 755 /app/videos
+
 EXPOSE 8000
 
 CMD ["./backend"]
