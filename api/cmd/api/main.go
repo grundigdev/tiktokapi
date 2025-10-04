@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/grundigdev/club/handlers"
 	"github.com/grundigdev/club/mailer"
@@ -52,7 +51,10 @@ func main() {
 	}))
 	app.routes(h)
 	fmt.Println(app)
-	port := os.Getenv("API_PORT")
-	appAddress := fmt.Sprintf("localhost:%s", port)
-	e.Logger.Fatal(e.Start(appAddress))
+
+	//port := os.Getenv("API_PORT")
+	//appAddress := fmt.Sprintf("localhost:%s", port)
+	//e.Logger.Fatal(e.Start(appAddress))
+
+	e.Logger.Fatal(e.Start(":8080"))
 }

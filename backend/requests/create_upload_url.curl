@@ -1,5 +1,0 @@
---location
---url "https://open.tiktokapis.com/v2/post/publish/video/init/"
---header "Authorization: Bearer act.Hkg5zg28g3MeMXvbdUASzrfNLEWUxOvGyRZ9R2GmB3wxnIiGix6aLUddfabc!4657.e1"
---header "Content-Type: application/json; charset=UTF-8"
---data "{\"post_info\":{\"title\":\"Karambit + Animations in CS2. #counterstrike2 #csgo\",\"privacy_level\":\"SELF_ONLY\",\"disable_duet\":true,\"disable_comment\":true,\"disable_stitch\":true,\"video_cover_timestamp_ms\":1000},\"source_info\":{\"source\":\"FILE_UPLOAD\",\"video_size\":1803949,\"chunk_size\":1803949,\"total_chunk_count\":1}}"

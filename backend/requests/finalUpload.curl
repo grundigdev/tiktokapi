@@ -1,6 +1,0 @@
-curl --location --request PUT \
-  'https://open-upload-i18n.tiktokapis.com/upload?upload_id=7554323245777733654&upload_token=29c55864-51d3-dab6-7df6-a6f5ee5fabe0' \
-  --header 'Content-Range: bytes 0-1803948/1803949' \
-  --header 'Content-Length: 1803949' \
-  --header 'Content-Type: video/mp4' \
-  --data-binary '@/home/marcel/dev/tiktok/video.mp4'

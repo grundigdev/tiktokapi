@@ -12,8 +12,7 @@ import (
 )
 
 func (h *Handler) ValidateBodyRequest(c echo.Context, payload interface{}) []*shared.ValidationError {
-	var validate *validator.Validate
-	validate = validator.New(validator.WithRequiredStructEnabled())
+	validate := validator.New(validator.WithRequiredStructEnabled())
 
 	var errors []*shared.ValidationError
 	err := validate.Struct(payload)

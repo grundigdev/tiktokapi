@@ -1,7 +1,85 @@
-version: "3"
+version: "3.8"
+
 services:
-  api:
-    image: api
+  postgres:
+    image: postgres:16-alpine
+    container_name: tiktok-db
+    environment:
+      POSTGRES_USER: ${DB_USER:-marcel_admin}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-root}
+      POSTGRES_DB: ${DB_NAME:-tiktok}
     ports:
-      - "8080":"8080"
-    restart: always
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${DB_USER:-marcel_admin} -d ${DB_NAME:-tiktok}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: tiktok-api
+    environment:
+      DB_HOST: postgres
+      DB_USER: ${DB_USER:-marcel_admin}
+      DB_PASSWORD: ${DB_PASSWORD:-root}
+      DB_NAME: ${DB_NAME:-tiktok}
+      DB_PORT: 5432
+      DB_SSLMODE: disable
+    ports:
+      - "${API_PORT:-8080}:8080"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8080/health",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: tiktok-backend
+    environment:
+      API_URL: http://api:8080
+      REFRESH_TOKEN: ${REFRESH_TOKEN:-rft.7yekSfYUqyhHt7f6Inz3wkJ9ErZZ0lZkbuFrejf5n0KuKYXZcL13x3GqTuZV!4736.e1}
+      MAX_UPLOADS: ${MAX_UPLOADS:-5}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    depends_on:
+      api:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-network
+
+volumes:
+  postgres_data:
+
+networks:
+  app-network:
+    driver: bridge
