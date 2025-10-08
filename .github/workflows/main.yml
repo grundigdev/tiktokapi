@@ -1,0 +1,17 @@
+name: Simple Test
+
+on: [push]
+
+jobs:
+  test:
+    runs-on: self-hosted
+    
+    steps:
+    - name: Print Hello
+      run: echo "Hello, GitHub TEST!"
+    
+    - name: Print Date
+      run: date
+    
+    - name: Test Passed
+      run: echo "✅ All tests passed!"

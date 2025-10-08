@@ -18,5 +18,5 @@
 Thumbs.db
 
 # Exclude until Dockerize
-.github/workflows
-./deploy.txt
+#.github/workflows
+#./deploy.txt
