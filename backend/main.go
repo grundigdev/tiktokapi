@@ -1,19 +1,36 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/joho/godotenv"
 )
 
 type TokenRequest struct {
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
 	ExpiresAt    string `json:"expires_at"`
+}
+
+type FileRequest struct {
+	ID              uuid.UUID `json:"expires_at"`
+	FilePathVideo   string    `json:"filepath_video"`
+	FilePathContext string    `json:"filepath_context"`
+	Status          string    `json:"status"`
+}
+
+type UploadRequest struct {
+	Title          string `json:"title"`
+	PrivacyLevel   string `json:"privacy_level"`
+	FilePath       string `json:"file_path"`
+	FileSize       int64  `json:"file_size"`
+	CoverTimestamp int    `json:"cover_timestamp"`
 }
 
 func waitForAPI(apiURL string, maxRetries int) error {
@@ -31,32 +48,81 @@ func waitForAPI(apiURL string, maxRetries int) error {
 
 func main() {
 
+	var apiURL string
+	var basePath string
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	mode := os.Getenv("MODE")
+	if mode == "DEV" {
+		apiURL = "http://localhost:8080"
+		basePath = "/home/marcel/dev/scripts/go/backend"
+	} else if mode == "PROD" {
+		apiURL = "http://api:8080"
+		basePath = "/home/marcel/app/backend"
+	}
+
 	// Warte bis API bereit ist
-	if err := waitForAPI("http://api:8080", 10); err != nil {
+	if err := waitForAPI(apiURL, 10); err != nil {
 		log.Fatal(err)
 	}
 
-	filePath := flag.String("filepath", "", "Path to the file")
+	// Bind Exec Params
+	filePathVideo := flag.String("video", "", "Path to video file")
+	filePathContext := flag.String("context", "", "Path to context file")
 
 	flag.Parse()
 
-	fmt.Println("File path:", *filePath)
+	video := *filePathVideo
 
-	if *filePath == "" {
-		fmt.Println("No filepath provided")
+	if *filePathVideo == "" {
+		fmt.Println("No filepath for video provided")
 		return
 	}
 
+	if *filePathContext == "" {
+		fmt.Println("No filepath for context provided")
+		return
+	}
+
+	title, err := ReadTitleFromContext(*filePathContext)
+	if err != nil {
+		fmt.Println("Error Extracting Name from JSON:", err)
+		return
+	}
+
+	uuid := uuid.New()
+	uuidString := uuid.String()
+
+	fileName := basePath + "/videos/uploading/" + uuidString + "_UPLOADING.mp4"
+
+	// Rename File
+	err = os.Rename(video, fileName)
+	if err != nil {
+		fmt.Println("Error renaming file:", err)
+		return
+	}
+
+	payloadFile := FileRequest{
+		ID:              uuid,
+		FilePathVideo:   fileName,
+		FilePathContext: *filePathContext,
+	}
+
+	SentFile(payloadFile, apiURL)
+
 	originalRefreshToken := "rft.7yekSfYUqyhHt7f6Inz3wkJ9ErZZ0lZkbuFrejf5n0KuKYXZcL13x3GqTuZV!4736.e1"
 
-	// Load German timezone (Europe/Berlin)
-	loc, err := time.LoadLocation("Europe/Berlin")
+	// Renew Access Token and get Expiry in Seconds
+	accessToken, expiresIn, err := RenewAccessToken(originalRefreshToken)
 	if err != nil {
 		panic(err)
 	}
 
-	// Renew access token and get expiry in seconds
-	accessToken, expiresIn, err := RenewAccessToken(originalRefreshToken)
+	// Load Time Zone
+	loc, err := time.LoadLocation("Europe/Berlin")
 	if err != nil {
 		panic(err)
 	}
@@ -64,67 +130,100 @@ func main() {
 	// Calculate expires_at using TikTok's expires_in
 	expiresAt := time.Now().In(loc).Add(time.Duration(expiresIn) * time.Second).Format(time.RFC3339)
 
-	// Build the request payload
-	payload := TokenRequest{
+	payloadToken := TokenRequest{
 		AccessToken:  accessToken,
 		RefreshToken: originalRefreshToken, // optionally replace with new refresh token if returned
 		ExpiresAt:    expiresAt,
 	}
 
-	// Encode to JSON
-	jsonData, err := json.Marshal(payload)
-	if err != nil {
-		panic(err)
-	}
+	SentToken(payloadToken, apiURL)
 
-	/*
-			// Send POST request to API
-		resp, err := http.Post(
-			"http://127.0.0.1:8080/api/token/create",
-			"application/json",
-			bytes.NewBuffer(jsonData),
-		)
-
-	*/
-
-	// Send POST request to API
-	resp, err := http.Post(
-		"http://api:8080/api/token/create",
-		"application/json",
-		bytes.NewBuffer(jsonData),
-	)
-	if err != nil {
-		panic(err)
-	}
-	defer resp.Body.Close()
-
-	fmt.Println("Response status:", resp.Status)
-
-	// Create Upload URL for File
-
-	contentType := "video/mp4"
-	uploadUrl, err := CreateUploadURL(
-		"Test",
-		"SELF_ONLY",
-		*filePath,
-		1000,
-		accessToken,
-		originalRefreshToken,
-	)
-	if err != nil {
-		fmt.Println("Error:", err)
-	}
-	fmt.Println("URL:", uploadUrl)
-
-	fileSize, _, err := GetFileSize(*filePath)
+	fileSize, _, err := GetFileSize(fileName)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		return
 	}
 
-	err = UploadFileComplete(uploadUrl, *filePath, fileSize, contentType)
+	payloadUpload := UploadRequest{
+		Title:          title,
+		PrivacyLevel:   "SELF_ONLY",
+		FilePath:       fileName,
+		FileSize:       fileSize,
+		CoverTimestamp: 1000,
+	}
+
+	SentUpload(payloadUpload, apiURL)
+
+	// Create Upload URL for File
+
+	uploadUrl, err := CreateUploadURL(
+		title,
+		"SELF_ONLY",
+		fileName,
+		1000,
+		accessToken,
+		originalRefreshToken,
+	)
+
 	if err != nil {
+		fmt.Println("Error:", err)
+
+		filePathFailed := basePath + "/videos/failed/" + uuidString + "_FAILED.mp4"
+		payloadFile = FileRequest{
+			ID:              uuid,
+			FilePathVideo:   filePathFailed,
+			FilePathContext: *filePathContext,
+			Status:          "FAILED",
+		}
+
+		UpdateFile(payloadFile, apiURL)
+
+		err = os.Rename(fileName, filePathFailed)
+		if err != nil {
+			fmt.Println("Error renaming file:", err)
+			return
+		}
+
+	}
+
+	contentType := "video/mp4"
+	err = UploadFileComplete(uploadUrl, fileName, fileSize, contentType)
+	if err != nil {
+
+		filePathFailed2 := basePath + "/videos/failed/" + uuidString + "_FAILED.mp4"
+		payloadFile = FileRequest{
+			ID:              uuid,
+			FilePathVideo:   filePathFailed2,
+			FilePathContext: *filePathContext,
+			Status:          "FAILED",
+		}
+
+		UpdateFile(payloadFile, apiURL)
+
+		err = os.Rename(fileName, filePathFailed2)
+		if err != nil {
+			fmt.Println("Error renaming file:", err)
+			return
+		}
+
 		fmt.Printf("Error: %v\n", err)
 	}
 
+	filePathUploaded := basePath + "/videos/uploaded/" + uuidString + "_UPLOADED.mp4"
+
+	payloadFile = FileRequest{
+		ID:              uuid,
+		FilePathVideo:   filePathUploaded,
+		FilePathContext: *filePathContext,
+		Status:          "UPLOADED",
+	}
+
+	UpdateFile(payloadFile, apiURL)
+
+	// Rename File
+	err = os.Rename(fileName, filePathUploaded)
+	if err != nil {
+		fmt.Println("Error renaming file:", err)
+		return
+	}
 }

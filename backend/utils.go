@@ -5,12 +5,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/joho/godotenv"
 )
 
 // Response struct based on TikTok's OAuth response format
@@ -87,8 +90,21 @@ type TokenData struct {
 
 // Fetches the latest token and renews it if expired
 func CheckAccessToken(accessToken string) (bool, error) {
-	endpoint := "http://api:8080/api/token/get"
-	//local endpoint := "http://127.0.0.1:8080/api/token/get"
+
+	var apiURL string
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	mode := os.Getenv("MODE")
+	if mode == "DEV" {
+		apiURL = "http://localhost:8080"
+	} else if mode == "PROD" {
+		apiURL = "http://api:8080"
+	}
+
+	endpoint := apiURL + "/api/token/get"
 
 	body := CheckTokenRequest{
 		AccessToken: accessToken,
@@ -214,14 +230,6 @@ type CreateUploadURLResponse struct {
 	} `json:"error"`
 }
 
-type UploadRequest struct {
-	Title          string `json:"title"`
-	PrivacyLevel   string `json:"privacy_level"`
-	FilePath       string `json:"file_path"`
-	FileSize       int64  `json:"file_size"`
-	CoverTimestamp int    `json:"cover_timestamp"`
-}
-
 func CreateUploadURL(
 	title string,
 	privacyLevel string,
@@ -326,16 +334,6 @@ func CreateUploadURL(
 
 		fmt.Println("Video publish init request successful")
 
-		payload := UploadRequest{
-			Title:          title,
-			PrivacyLevel:   privacyLevel,
-			FilePath:       filePath,
-			FileSize:       fileSize,
-			CoverTimestamp: videoCoverTimestampMS,
-		}
-
-		err = SentUpload(payload)
-
 		if err != nil {
 			fmt.Printf("Error: %v\n", err)
 			return "", fmt.Errorf("failed to get file size: %v", err)
@@ -427,16 +425,6 @@ func CreateUploadURL(
 		}
 
 		fmt.Println("Video publish init request successful (chunked upload)")
-
-		payload := UploadRequest{
-			Title:          title,
-			PrivacyLevel:   privacyLevel,
-			FilePath:       filePath,
-			FileSize:       fileSize,
-			CoverTimestamp: videoCoverTimestampMS,
-		}
-
-		err = SentUpload(payload)
 
 		if err != nil {
 			fmt.Printf("Error: %v\n", err)
@@ -771,3 +759,25 @@ func UploadFile(
 }
 
 */
+
+type Context struct {
+	Title string `json:"title"`
+}
+
+// Reads the JSON file and returns the title
+func ReadTitleFromContext(filePath string) (string, error) {
+
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read file: %w", err)
+	}
+
+	// Parse JSON
+	var ctx Context
+	err = json.Unmarshal(data, &ctx)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse JSON: %w", err)
+	}
+
+	return ctx.Title, nil
+}

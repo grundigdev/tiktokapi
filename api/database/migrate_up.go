@@ -20,7 +20,7 @@ func main() {
 	}
 
 	// AutoMigrate
-	err = db.AutoMigrate(&models.TokenModel{}, &models.UploadModel{})
+	err = db.AutoMigrate(&models.TokenModel{}, &models.UploadModel{}, &models.FileModel{})
 	if err != nil {
 		panic(err)
 	}

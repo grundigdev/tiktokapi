@@ -22,4 +22,11 @@ func (app *Application) routes(handler handlers.Handler) {
 		uploadRoutes.POST("/get/all", handler.GetUploads)
 	}
 
+	fileRoutes := apiGroup.Group("/file")
+	{
+		fileRoutes.POST("/create", handler.CreateFile)
+		fileRoutes.POST("/get", handler.GetFile)
+		fileRoutes.PUT("/update", handler.UpdateFile)
+	}
+
 }
