@@ -1,6 +1,3 @@
-# Ignore backup directory
-/backup
-
 # Go build artifacts
 *.exe
 *.exe~

@@ -102,7 +102,7 @@ func main() {
 
 	// Create Upload URL for File
 
-	contentType := "video/mp2"
+	contentType := "video/mp4"
 	uploadUrl, err := CreateUploadURL(
 		"Test",
 		"SELF_ONLY",
