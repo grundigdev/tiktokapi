@@ -19,8 +19,8 @@ WORKDIR /app
 COPY --from=builder /app/backend .
 
 # Copy file watcher script
-COPY watcher.sh .
-RUN chmod +x watcher.sh
+COPY filewatcher.sh .
+RUN chmod +x filewatcher.sh
 
 RUN mkdir -p /app/videos/pending \
              /app/videos/uploading \
@@ -31,4 +31,4 @@ RUN chmod -R 755 /app/videos
 
 EXPOSE 8000
 
-CMD ["./watcher.sh"]
+CMD ["./filewatcher.sh"]
