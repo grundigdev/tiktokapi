@@ -1,20 +1,30 @@
-name: Deploy to Ubuntu Server
+name: TIKTOK API PROD DEPLOY
 
 on:
   push:
     branches:
-      - main  # Change this to your default branch if different
-  workflow_dispatch:  # Allows manual triggering
+      - main
+  workflow_dispatch:
+
+env:
+  DEPLOY_PATH: /home/marcel/app
 
 jobs:
   deploy:
     runs-on: self-hosted
     
     steps:
+      - name: Create deployment directory
+        run: |
+          mkdir -p ${{ env.DEPLOY_PATH }}
+          
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          path: ${{ env.DEPLOY_PATH }}
 
       - name: Create .env file
+        working-directory: ${{ env.DEPLOY_PATH }}
         run: |
           cat > .env << EOF
           DB_USER=${{ secrets.DB_USER }}
@@ -27,26 +37,36 @@ jobs:
           MAX_UPLOADS=${{ secrets.MAX_UPLOADS }}
           EOF
 
+      - name: Create videos directory structure
+        working-directory: ${{ env.DEPLOY_PATH }}
+        run: |
+          mkdir -p backend/videos/{pending,uploading,uploaded,failed}
+
       - name: Stop existing containers
+        working-directory: ${{ env.DEPLOY_PATH }}
         run: |
           docker-compose down || true
 
       - name: Remove old images
+        working-directory: ${{ env.DEPLOY_PATH }}
         run: |
           docker-compose rm -f || true
           docker image prune -f
 
       - name: Build and start containers
+        working-directory: ${{ env.DEPLOY_PATH }}
         run: |
           docker-compose up -d --build
 
       - name: Wait for services to be healthy
+        working-directory: ${{ env.DEPLOY_PATH }}
         run: |
           echo "Waiting for services to start..."
           sleep 10
           docker-compose ps
 
       - name: Check service health
+        working-directory: ${{ env.DEPLOY_PATH }}
         run: |
           # Check if all containers are running
           if [ $(docker-compose ps -q | wc -l) -eq 3 ]; then
@@ -63,6 +83,7 @@ jobs:
         continue-on-error: true
 
       - name: Display running containers
+        working-directory: ${{ env.DEPLOY_PATH }}
         run: |
           echo "Deployment successful! Running containers:"
           docker-compose ps
