@@ -19,7 +19,7 @@ type TokenRequest struct {
 }
 
 type FileRequest struct {
-	ID              uuid.UUID `json:"expires_at"`
+	ID              uuid.UUID `json:"id"`
 	FilePathVideo   string    `json:"filepath_video"`
 	FilePathContext string    `json:"filepath_context"`
 	Status          string    `json:"status"`
@@ -156,74 +156,79 @@ func main() {
 
 	// Create Upload URL for File
 
-	uploadUrl, err := CreateUploadURL(
-		title,
-		"SELF_ONLY",
-		fileName,
-		1000,
-		accessToken,
-		originalRefreshToken,
-	)
+	/*
+	   uploadUrl, err := CreateUploadURL(
 
-	if err != nil {
-		fmt.Println("Error:", err)
+	   	title,
+	   	"SELF_ONLY",
+	   	fileName,
+	   	1000,
+	   	accessToken,
+	   	originalRefreshToken,
 
-		filePathFailed := basePath + "/videos/failed/" + uuidString + "_FAILED.mp4"
-		payloadFile = FileRequest{
-			ID:              uuid,
-			FilePathVideo:   filePathFailed,
-			FilePathContext: *filePathContext,
-			Status:          "FAILED",
-		}
+	   )
 
-		UpdateFile(payloadFile, apiURL)
+	   	if err != nil {
+	   		fmt.Println("Error:", err)
 
-		err = os.Rename(fileName, filePathFailed)
-		if err != nil {
-			fmt.Println("Error renaming file:", err)
-			return
-		}
+	   		filePathFailed := basePath + "/videos/failed/" + uuidString + "_FAILED.mp4"
+	   		payloadFile = FileRequest{
+	   			ID:              uuid,
+	   			FilePathVideo:   filePathFailed,
+	   			FilePathContext: *filePathContext,
+	   			Status:          "FAILED",
+	   		}
 
-	}
+	   		UpdateFile(payloadFile, apiURL)
 
-	contentType := "video/mp4"
-	err = UploadFileComplete(uploadUrl, fileName, fileSize, contentType)
-	if err != nil {
+	   		err = os.Rename(fileName, filePathFailed)
+	   		if err != nil {
+	   			fmt.Println("Error renaming file:", err)
+	   			return
+	   		}
 
-		filePathFailed2 := basePath + "/videos/failed/" + uuidString + "_FAILED.mp4"
-		payloadFile = FileRequest{
-			ID:              uuid,
-			FilePathVideo:   filePathFailed2,
-			FilePathContext: *filePathContext,
-			Status:          "FAILED",
-		}
+	   }
 
-		UpdateFile(payloadFile, apiURL)
+	   contentType := "video/mp4"
+	   err = UploadFileComplete(uploadUrl, fileName, fileSize, contentType)
+	   if err != nil {
 
-		err = os.Rename(fileName, filePathFailed2)
-		if err != nil {
-			fmt.Println("Error renaming file:", err)
-			return
-		}
+	   		filePathFailed2 := basePath + "/videos/failed/" + uuidString + "_FAILED.mp4"
+	   		payloadFile = FileRequest{
+	   			ID:              uuid,
+	   			FilePathVideo:   filePathFailed2,
+	   			FilePathContext: *filePathContext,
+	   			Status:          "FAILED",
+	   		}
 
-		fmt.Printf("Error: %v\n", err)
-	}
+	   		UpdateFile(payloadFile, apiURL)
 
-	filePathUploaded := basePath + "/videos/uploaded/" + uuidString + "_UPLOADED.mp4"
+	   		err = os.Rename(fileName, filePathFailed2)
+	   		if err != nil {
+	   			fmt.Println("Error renaming file:", err)
+	   			return
+	   		}
 
-	payloadFile = FileRequest{
-		ID:              uuid,
-		FilePathVideo:   filePathUploaded,
-		FilePathContext: *filePathContext,
-		Status:          "UPLOADED",
-	}
+	   		fmt.Printf("Error: %v\n", err)
+	   	}
 
-	UpdateFile(payloadFile, apiURL)
+	   filePathUploaded := basePath + "/videos/uploaded/" + uuidString + "_UPLOADED.mp4"
 
-	// Rename File
-	err = os.Rename(fileName, filePathUploaded)
-	if err != nil {
-		fmt.Println("Error renaming file:", err)
-		return
-	}
+	   	payloadFile = FileRequest{
+	   		ID:              uuid,
+	   		FilePathVideo:   filePathUploaded,
+	   		FilePathContext: *filePathContext,
+	   		Status:          "UPLOADED",
+	   	}
+
+	   UpdateFile(payloadFile, apiURL)
+
+	   // Rename File
+	   err = os.Rename(fileName, filePathUploaded)
+
+	   	if err != nil {
+	   		fmt.Println("Error renaming file:", err)
+	   		return
+	   	}
+	*/
 }

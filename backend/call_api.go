@@ -63,6 +63,8 @@ func SentFile(payload FileRequest, apiURL string) *http.Response {
 	if err != nil {
 		panic(err)
 	}
+	fmt.Println("Test:", resp.Status)
+
 	defer resp.Body.Close()
 
 	fmt.Println("Response status:", resp.Status)
