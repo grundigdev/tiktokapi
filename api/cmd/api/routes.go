@@ -6,6 +6,7 @@ import (
 
 func (app *Application) routes(handler handlers.Handler) {
 	app.server.GET("/health", handler.HealthCheck)
+	app.server.HEAD("/health", handler.HealthCheck)
 
 	apiGroup := app.server.Group("/api")
 

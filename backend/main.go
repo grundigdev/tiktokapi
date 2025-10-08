@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 )
@@ -14,7 +15,25 @@ type TokenRequest struct {
 	ExpiresAt    string `json:"expires_at"`
 }
 
+func waitForAPI(apiURL string, maxRetries int) error {
+	for i := 0; i < maxRetries; i++ {
+		resp, err := http.Get(apiURL + "/health")
+		if err == nil && resp.StatusCode == 200 {
+			log.Println("API is ready!")
+			return nil
+		}
+		log.Printf("Waiting for API... (attempt %d/%d)", i+1, maxRetries)
+		time.Sleep(2 * time.Second)
+	}
+	return fmt.Errorf("API not ready after %d attempts", maxRetries)
+}
+
 func main() {
+
+	// Warte bis API bereit ist
+	if err := waitForAPI("http://api:8080", 10); err != nil {
+		log.Fatal(err)
+	}
 
 	/*
 		filePath := flag.String("filepath", "", "Path to the file")
@@ -60,9 +79,19 @@ func main() {
 		panic(err)
 	}
 
+	/*
+			// Send POST request to API
+		resp, err := http.Post(
+			"http://127.0.0.1:8080/api/token/create",
+			"application/json",
+			bytes.NewBuffer(jsonData),
+		)
+
+	*/
+
 	// Send POST request to API
 	resp, err := http.Post(
-		"http://127.0.0.1:8080/api/token/create",
+		"http://api:8080/api/token/create",
 		"application/json",
 		bytes.NewBuffer(jsonData),
 	)

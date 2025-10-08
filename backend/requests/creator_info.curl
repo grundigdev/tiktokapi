@@ -1,3 +1,0 @@
-curl --location --request POST 'https://open.tiktokapis.com/v2/post/publish/creator_info/query/' \
---header 'Authorization: Bearer act.Hkg5zg28g3MeMXvbdUASzrfNLEWUxOvGyRZ9R2GmB3wxnIiGix6aLUddfabc!4657.e1' \
---header 'Content-Type: application/json; charset=UTF-8'

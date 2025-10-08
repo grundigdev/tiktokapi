@@ -87,7 +87,8 @@ type TokenData struct {
 
 // Fetches the latest token and renews it if expired
 func CheckAccessToken(accessToken string) (bool, error) {
-	endpoint := "http://127.0.0.1:8080/api/token/get"
+	endpoint := "http://api:8080/api/token/get"
+	//local endpoint := "http://127.0.0.1:8080/api/token/get"
 
 	body := CheckTokenRequest{
 		AccessToken: accessToken,
