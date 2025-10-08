@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -35,19 +36,16 @@ func main() {
 		log.Fatal(err)
 	}
 
-	/*
-		filePath := flag.String("filepath", "", "Path to the file")
+	filePath := flag.String("filepath", "", "Path to the file")
 
-		flag.Parse()
+	flag.Parse()
 
-		fmt.Println("File path:", *filePath)
+	fmt.Println("File path:", *filePath)
 
-		if *filePath == "" {
-			fmt.Println("No filepath provided")
-			return
-		} */
-
-	filePath := "/home/marcel/dev/scripts/go/backend/video.mp4"
+	if *filePath == "" {
+		fmt.Println("No filepath provided")
+		return
+	}
 
 	originalRefreshToken := "rft.7yekSfYUqyhHt7f6Inz3wkJ9ErZZ0lZkbuFrejf5n0KuKYXZcL13x3GqTuZV!4736.e1"
 
@@ -108,7 +106,7 @@ func main() {
 	uploadUrl, err := CreateUploadURL(
 		"Test",
 		"SELF_ONLY",
-		filePath,
+		*filePath,
 		1000,
 		accessToken,
 		originalRefreshToken,
@@ -118,13 +116,13 @@ func main() {
 	}
 	fmt.Println("URL:", uploadUrl)
 
-	fileSize, _, err := GetFileSize(filePath)
+	fileSize, _, err := GetFileSize(*filePath)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		return
 	}
 
-	err = UploadFileComplete(uploadUrl, filePath, fileSize, contentType)
+	err = UploadFileComplete(uploadUrl, *filePath, fileSize, contentType)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 	}

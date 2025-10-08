@@ -11,12 +11,16 @@ RUN CGO_ENABLED=0 GOARCH=arm64 GOOS=linux go build -o backend .
 
 FROM alpine:latest
 
-RUN apk --no-cache add ca-certificates tzdata
+RUN apk --no-cache add ca-certificates tzdata inotify-tools
 
-WORKDIR /app/
+WORKDIR /app
 
 # Binary vom builder stage kopieren
 COPY --from=builder /app/backend .
+
+# Copy file watcher script
+COPY watcher.sh .
+RUN chmod +x watcher.sh
 
 RUN mkdir -p /app/videos/pending \
              /app/videos/uploading \
@@ -27,4 +31,4 @@ RUN chmod -R 755 /app/videos
 
 EXPOSE 8000
 
-CMD ["./backend"]
+CMD ["./watcher.sh"]
