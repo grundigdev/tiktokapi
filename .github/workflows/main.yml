@@ -1,17 +1,68 @@
-name: Simple Test
+name: Deploy to Ubuntu Server
 
-on: [push]
+on:
+  push:
+    branches:
+      - main  # Change this to your default branch if different
+  workflow_dispatch:  # Allows manual triggering
 
 jobs:
-  test:
+  deploy:
     runs-on: self-hosted
     
     steps:
-    - name: Print Hello
-      run: echo "Hello, GitHub TEST!"
-    
-    - name: Print Date
-      run: date
-    
-    - name: Test Passed
-      run: echo "✅ All tests passed!"
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create .env file
+        run: |
+          cat > .env << EOF
+          DB_USER=${{ secrets.DB_USER }}
+          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          DB_NAME=${{ secrets.DB_NAME }}
+          DB_PORT=${{ secrets.DB_PORT }}
+          API_PORT=${{ secrets.API_PORT }}
+          BACKEND_PORT=${{ secrets.BACKEND_PORT }}
+          REFRESH_TOKEN=${{ secrets.REFRESH_TOKEN }}
+          MAX_UPLOADS=${{ secrets.MAX_UPLOADS }}
+          EOF
+
+      - name: Stop existing containers
+        run: |
+          docker-compose down || true
+
+      - name: Remove old images
+        run: |
+          docker-compose rm -f || true
+          docker image prune -f
+
+      - name: Build and start containers
+        run: |
+          docker-compose up -d --build
+
+      - name: Wait for services to be healthy
+        run: |
+          echo "Waiting for services to start..."
+          sleep 10
+          docker-compose ps
+
+      - name: Check service health
+        run: |
+          # Check if all containers are running
+          if [ $(docker-compose ps -q | wc -l) -eq 3 ]; then
+            echo "All services are running!"
+          else
+            echo "Some services failed to start!"
+            docker-compose logs
+            exit 1
+          fi
+
+      - name: Clean up old Docker resources
+        run: |
+          docker system prune -f --volumes
+        continue-on-error: true
+
+      - name: Display running containers
+        run: |
+          echo "Deployment successful! Running containers:"
+          docker-compose ps
