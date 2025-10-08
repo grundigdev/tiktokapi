@@ -7,26 +7,31 @@ on:
   workflow_dispatch:
 
 env:
-  DEPLOY_PATH: /home/marcel/app
+  DEPLOY_PATH: /home/marcel/app  # Change this to your desired deployment path
 
 jobs:
   deploy:
     runs-on: self-hosted
     
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Create deployment directory
         run: |
           mkdir -p ${{ env.DEPLOY_PATH }}
           
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          path: ${{ env.DEPLOY_PATH }}
+      - name: Sync code to deployment directory
+        run: |
+          rsync -av --delete \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='backend/videos' \
+            ./ ${{ env.DEPLOY_PATH }}/
 
       - name: Create .env file
-        working-directory: ${{ env.DEPLOY_PATH }}
         run: |
-          cat > .env << EOF
+          cat > ${{ env.DEPLOY_PATH }}/.env << EOF
           DB_USER=${{ secrets.DB_USER }}
           DB_PASSWORD=${{ secrets.DB_PASSWORD }}
           DB_NAME=${{ secrets.DB_NAME }}
@@ -38,9 +43,8 @@ jobs:
           EOF
 
       - name: Create videos directory structure
-        working-directory: ${{ env.DEPLOY_PATH }}
         run: |
-          mkdir -p backend/videos/{pending,uploading,uploaded,failed}
+          mkdir -p ${{ env.DEPLOY_PATH }}/backend/videos/{pending,uploading,uploaded,failed}
 
       - name: Stop existing containers
         working-directory: ${{ env.DEPLOY_PATH }}
@@ -87,3 +91,5 @@ jobs:
         run: |
           echo "Deployment successful! Running containers:"
           docker-compose ps
+          echo ""
+          echo "Deployed to: ${{ env.DEPLOY_PATH }}"
