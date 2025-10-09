@@ -6,7 +6,7 @@
 #basepath="/home/marcel/app/backend"
 
 #CONTAINER
-basepath="/app/videos"
+basepath="/app"
 
 #DEV
 #basepath="/home/marcel/dev/scripts/go/backend"
