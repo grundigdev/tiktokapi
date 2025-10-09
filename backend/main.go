@@ -39,7 +39,7 @@ func waitForAPI(apiURL string, maxRetries int) error {
 			log.Println("API is ready!")
 			return nil
 		}
-		log.Printf("Waiting for API... (attempt %d/%d)", i+1, maxRetries)
+		log.Printf("Waiting for API... (attempt %d/%d URL %d)", i+1, maxRetries, apiURL)
 		time.Sleep(2 * time.Second)
 	}
 	return fmt.Errorf("API not ready after %d attempts", maxRetries)
