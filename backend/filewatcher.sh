@@ -3,10 +3,10 @@
 
 
 #PROD 
-#basepath="/home/marcel/app/backend"
+basepath="/home/marcel/app/backend"
 
 #DEV
-basepath="/home/marcel/dev/scripts/go/backend"
+#basepath="/home/marcel/dev/scripts/go/backend"
 
 
 echo "Starting file watcher for ${basepath}/videos/pending..."
