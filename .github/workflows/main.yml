@@ -27,6 +27,7 @@ jobs:
             --exclude='.git' \
             --exclude='.github' \
             --exclude='backend/videos' \
+            --exclude='backend/context' \
             ./ ${{ env.DEPLOY_PATH }}/
 
       - name: Create .env file
@@ -42,9 +43,10 @@ jobs:
           MAX_UPLOADS=${{ secrets.MAX_UPLOADS }}
           EOF
 
-      - name: Create videos directory structure
+      - name: Create videos and context directory structure
         run: |
           mkdir -p ${{ env.DEPLOY_PATH }}/backend/videos/{pending,uploading,uploaded,failed}
+          mkdir -p ${{ env.DEPLOY_PATH }}/backend/context/{pending,uploading,uploaded,failed}
 
       - name: Stop existing containers
         working-directory: ${{ env.DEPLOY_PATH }}
