@@ -5,15 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/joho/godotenv"
 )
 
 // Response struct based on TikTok's OAuth response format
@@ -92,10 +89,12 @@ type TokenData struct {
 func CheckAccessToken(accessToken string) (bool, error) {
 
 	var apiURL string
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
+
+	/*
+		err := godotenv.Load()
+		if err != nil {
+			log.Fatal("Error loading .env file")
+		}*/
 
 	mode := os.Getenv("MODE")
 	if mode == "DEV" {
