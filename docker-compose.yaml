@@ -69,6 +69,7 @@ services:
       - "${BACKEND_PORT:-8000}:8000"
     volumes:
       - ./backend/videos:/app/videos
+      - ./backend/context:/app/context
     depends_on:
       api:
         condition: service_healthy
