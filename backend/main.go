@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/joho/godotenv"
 )
 
 type TokenRequest struct {
@@ -50,10 +49,12 @@ func main() {
 
 	var apiURL string
 	var basePath string
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
+
+	/*
+		err := godotenv.Load()
+		if err != nil {
+			log.Fatal("Error loading .env file")
+		}*/
 
 	mode := os.Getenv("MODE")
 	if mode == "DEV" {
