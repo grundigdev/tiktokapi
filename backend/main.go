@@ -57,6 +57,9 @@ func main() {
 		}*/
 
 	mode := os.Getenv("MODE")
+
+	fmt.Println(mode)
+
 	if mode == "DEV" {
 		apiURL = "http://localhost:8080"
 		basePath = "/home/marcel/dev/scripts/go/backend"
