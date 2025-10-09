@@ -26,7 +26,7 @@ RUN mkdir -p /app/videos/pending \
              /app/videos/uploading \
              /app/videos/uploaded \
              /app/videos/failed \
-             /app/context/uploading \
+             /app/context/pending \
              /app/context/uploaded \
              /app/context/failed \
              /app/context/uploading
@@ -34,6 +34,9 @@ RUN mkdir -p /app/videos/pending \
 
 RUN chmod -R 755 /app/videos
 RUN chmod -R 755 /app/context
+
+RUN chown -R marcel:marcel /app/videos
+RUN chown -R marcel:marcel /app/context
 
 EXPOSE 8000
 
