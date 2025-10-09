@@ -64,10 +64,7 @@ services:
       dockerfile: Dockerfile
     container_name: tiktok-backend
     environment:
-      API_URL: http://api:8080
-      REFRESH_TOKEN: ${REFRESH_TOKEN:-rft.7yekSfYUqyhHt7f6Inz3wkJ9ErZZ0lZkbuFrejf5n0KuKYXZcL13x3GqTuZV!4736.e1}
-      MAX_UPLOADS: ${MAX_UPLOADS:-5}
-      VIDEO_PATH: /app/videos
+      MODE: "PROD"
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     volumes:
