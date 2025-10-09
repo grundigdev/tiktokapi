@@ -25,9 +25,15 @@ RUN chmod +x filewatcher.sh
 RUN mkdir -p /app/videos/pending \
              /app/videos/uploading \
              /app/videos/uploaded \
-             /app/videos/failed
+             /app/videos/failed \
+             /app/context/uploading \
+             /app/context/uploaded \
+             /app/context/failed \
+             /app/context/uploading
+
 
 RUN chmod -R 755 /app/videos
+RUN chmod -R 755 /app/context
 
 EXPOSE 8000
 
