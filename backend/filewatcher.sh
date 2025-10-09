@@ -3,7 +3,10 @@
 
 
 #PROD 
-basepath="/home/marcel/app/backend"
+#basepath="/home/marcel/app/backend"
+
+#CONTAINER
+basepath="/app/videos"
 
 #DEV
 #basepath="/home/marcel/dev/scripts/go/backend"
