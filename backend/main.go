@@ -76,7 +76,8 @@ func main() {
 		basePath = "/home/marcel/dev/scripts/go/backend"
 	} else if mode == "PROD" {
 		apiURL = "http://api:8080"
-		basePath = "/home/marcel/app/backend"
+		//basePath = "/home/marcel/app/backend"
+		basePath = "/app"
 	}
 
 	// Warte bis API bereit ist
