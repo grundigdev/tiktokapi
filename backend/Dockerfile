@@ -35,9 +35,6 @@ RUN mkdir -p /app/videos/pending \
 RUN chmod -R 755 /app/videos
 RUN chmod -R 755 /app/context
 
-RUN chown -R marcel:marcel /app/videos
-RUN chown -R marcel:marcel /app/context
-
 EXPOSE 8000
 
 CMD ["./filewatcher.sh"]
